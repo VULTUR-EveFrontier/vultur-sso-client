@@ -60,9 +60,13 @@ jobs:
         
       - name: Check package contents
         run: |
-          pnpm pack --dry-run
+          echo "Checking what would be published..."
+          pnpm publish --dry-run --no-git-checks
+          echo ""
+          echo "Creating tarball to verify contents..."
+          pnpm pack
           echo "Package contents:"
-          tar -tzf *.tgz 2>/dev/null || echo "No tarball created in dry-run"
+          tar -tzf *.tgz
 
   publish:
     name: Publish to NPM
@@ -132,13 +136,13 @@ jobs:
         
       - name: Publish to NPM (Release)
         if: steps.version.outputs.is_release == 'true'
-        run: pnpm publish --access public --tag ${{ steps.version.outputs.tag }}
+        run: pnpm publish --access public --tag ${{ steps.version.outputs.tag }} --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
       - name: Publish to NPM (Development)
         if: steps.version.outputs.is_release == 'false'
-        run: pnpm publish --access public --tag ${{ steps.version.outputs.tag }}
+        run: pnpm publish --access public --tag ${{ steps.version.outputs.tag }} --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
