@@ -49,6 +49,13 @@ export function getPermissionConfig(): VulturPermissionConfig {
 }
 
 /**
+ * Reset global configuration (for testing)
+ */
+export function resetVulturSSOConfig(): void {
+  globalConfig = null;
+}
+
+/**
  * Create a permission configuration builder
  */
 export class VulturPermissionConfigBuilder {

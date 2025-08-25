@@ -161,6 +161,9 @@ export function createStaticVulturPermissionsApiHandler(config: VulturPermission
     }
 
     try {
+      // Validate that the config can be serialized to JSON
+      JSON.stringify(config);
+      
       // Set appropriate headers
       res.setHeader('Content-Type', 'application/json');
       res.setHeader('Cache-Control', 'public, max-age=300'); // Cache for 5 minutes

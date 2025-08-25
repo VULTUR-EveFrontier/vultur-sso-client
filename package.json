@@ -12,11 +12,24 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "prepublishOnly": "pnpm run clean && pnpm run build",
+    "prepack": "pnpm run build"
   },
-  "keywords": ["vultur", "sso", "authentication", "permissions"],
-  "author": "",
+  "keywords": ["vultur", "sso", "authentication", "permissions", "nextjs", "react", "jwt", "rbac"],
+  "author": "VULTUR Development Team",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VULTUR-org/vultur-sso-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/VULTUR-org/vultur-sso-client/issues"
+  },
+  "homepage": "https://github.com/VULTUR-org/vultur-sso-client#readme",
   "packageManager": "pnpm@10.12.1",
   "peerDependencies": {
     "react": "^18.0.0",
@@ -26,6 +39,15 @@
   "devDependencies": {
     "typescript": "^5.3.0",
     "@types/react": "^18.2.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "vitest": "^1.6.0",
+    "@vitest/ui": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "jsdom": "^24.1.0",
+    "@testing-library/react": "^15.0.7",
+    "@testing-library/jest-dom": "^6.4.6",
+    "@testing-library/react-hooks": "^8.0.1",
+    "msw": "^2.3.1",
+    "undici": "^6.19.2"
   }
 }

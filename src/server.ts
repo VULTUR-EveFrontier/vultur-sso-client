@@ -15,10 +15,10 @@ export type ServerConfig = {
 };
 
 export class VulturSSOError extends Error {
-  code: string;
-  details?: unknown;
+  public code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'NETWORK_ERROR' | 'CONFIG_ERROR';
+  public details?: unknown;
 
-  constructor(code: string, message: string, details?: unknown) {
+  constructor(code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'NETWORK_ERROR' | 'CONFIG_ERROR', message: string, details?: unknown) {
     super(message);
     this.name = 'VulturSSOError';
     this.code = code;

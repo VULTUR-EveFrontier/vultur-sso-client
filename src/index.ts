@@ -15,7 +15,6 @@ export type {
   UserInfo,
   UserPermissions,
   VulturSSOClientConfig,
-  VulturSSOError,
   UseVulturPermissionsOptions,
 } from './types';
 
@@ -24,6 +23,7 @@ export {
   initializeVulturSSO,
   getVulturSSOConfig,
   getPermissionConfig,
+  resetVulturSSOConfig,
   VulturPermissionConfigBuilder,
   PermissionPatterns,
 } from './config';
@@ -54,6 +54,7 @@ export {
   withAuth,
   withPermission,
   createServerClient,
+  VulturSSOError,
 } from './server';
 
 export type {

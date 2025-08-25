@@ -99,14 +99,7 @@ export type VulturSSOClientConfig = {
   cacheDuration?: number;
 };
 
-/**
- * Error types for vultur-sso-client
- */
-export type VulturSSOError = {
-  code: 'UNAUTHORIZED' | 'FORBIDDEN' | 'NOT_FOUND' | 'NETWORK_ERROR' | 'CONFIG_ERROR';
-  message: string;
-  details?: unknown;
-};
+// VulturSSOError is now defined as a class in server.ts
 
 /**
  * Hook options for useVulturPermissions

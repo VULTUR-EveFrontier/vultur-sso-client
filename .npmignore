@@ -1,0 +1,36 @@
+# Source files (we publish dist instead)
+src/
+tsconfig.json
+
+# Development files
+.github/
+examples/
+node_modules/
+*.log
+.DS_Store
+
+# IDE files
+.vscode/
+.cursor/
+*.swp
+*.swo
+
+# Build artifacts
+*.tgz
+
+# Git
+.git/
+.gitignore
+
+# Development configs
+.eslintrc*
+.prettierrc*
+jest.config.*
+vitest.config.*
+
+# Environment
+.env*
+
+# Temp files
+tmp/
+temp/

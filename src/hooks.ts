@@ -5,9 +5,9 @@ import {
   UserRole, 
   UserPermissions, 
   Permission, 
-  VulturSSOError,
   UseVulturPermissionsOptions 
 } from './types';
+import { VulturSSOError } from './server';
 
 /**
  * API client for fetching user data from vultur-ident-api
@@ -113,20 +113,7 @@ class PermissionResolver {
   }
 }
 
-/**
- * Custom error class for VULTUR SSO operations
- */
-class VulturSSOError extends Error {
-  public code: VulturSSOError['code'];
-  public details?: unknown;
 
-  constructor(code: VulturSSOError['code'], message: string, details?: unknown) {
-    super(message);
-    this.name = 'VulturSSOError';
-    this.code = code;
-    this.details = details;
-  }
-}
 
 /**
  * React hook for fetching user permissions for the current application
