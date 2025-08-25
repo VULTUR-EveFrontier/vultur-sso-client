@@ -59,7 +59,7 @@ describe('Configuration', () => {
           permissions: [],
           lastUpdated: '2024-01-01T00:00:00Z',
         },
-      } as VulturSSOClientConfig
+      } as unknown as VulturSSOClientConfig
 
       expect(() => initializeVulturSSO(config)).toThrow('identApiUrl is required')
     })
@@ -73,7 +73,7 @@ describe('Configuration', () => {
           permissions: [],
           lastUpdated: '2024-01-01T00:00:00Z',
         },
-      } as VulturSSOClientConfig
+      } as unknown as VulturSSOClientConfig
 
       expect(() => initializeVulturSSO(config)).toThrow('applicationName is required')
     })

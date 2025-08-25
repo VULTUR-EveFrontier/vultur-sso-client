@@ -12,13 +12,32 @@ vi.mock('next/server', () => {
   }
 
   class MockNextResponse {
-    constructor(public body: string, public init?: ResponseInit) {}
+    constructor(public body: string, private responseInit?: ResponseInit) {}
     
     static json(data: any, init?: ResponseInit) {
       return new MockNextResponse(JSON.stringify(data), {
         ...init,
         headers: new Headers(init?.headers),
       })
+    }
+    
+    // Helper method to get response body as text
+    async text() {
+      return this.body
+    }
+    
+    // Helper method to get response body as JSON
+    async json() {
+      return JSON.parse(this.body)
+    }
+    
+    // Mock properties to match NextResponse interface
+    get status() {
+      return this.responseInit?.status || 200
+    }
+    
+    get headers() {
+      return this.responseInit?.headers as Headers || new Headers()
     }
   }
 
@@ -106,7 +125,7 @@ describe('Next.js Endpoint Handlers', () => {
       const response = await handler(request as any)
       
       expect(response).toBeInstanceOf(MockNextResponse)
-      const config = JSON.parse(response.body)
+      const config = await response.json()
       expect(config).toEqual(mockPermissionConfig)
     })
 
@@ -116,8 +135,8 @@ describe('Next.js Endpoint Handlers', () => {
       
       const response = await handler(request as any)
       
-      expect(response.init?.status).toBe(200)
-      const headers = response.init?.headers as Headers
+      expect(response.status).toBe(200)
+      const headers = response.headers
       expect(headers.get('Content-Type')).toBe('application/json')
       expect(headers.get('Cache-Control')).toBe('public, max-age=300')
       expect(headers.get('Access-Control-Allow-Origin')).toBe('*')
@@ -134,8 +153,8 @@ describe('Next.js Endpoint Handlers', () => {
       
       const response = await handler(request as any)
       
-      expect(response.init?.status).toBe(500)
-      const errorResponse = JSON.parse(response.body)
+      expect(response.status).toBe(500)
+      const errorResponse = await response.json()
       expect(errorResponse.error).toBe('Internal server error')
       expect(errorResponse.message).toBe('Failed to load permission configuration')
     })
@@ -149,7 +168,7 @@ describe('Next.js Endpoint Handlers', () => {
       const response = await handler(request as any)
       
       expect(response).toBeInstanceOf(MockNextResponse)
-      const config = JSON.parse(response.body)
+      const config = await response.json()
       expect(config).toEqual(mockPermissionConfig)
     })
 
@@ -159,8 +178,8 @@ describe('Next.js Endpoint Handlers', () => {
       
       const response = await handler(request as any)
       
-      expect(response.init?.status).toBe(200)
-      const headers = response.init?.headers as Headers
+      expect(response.status).toBe(200)
+      const headers = response.headers
       expect(headers.get('Content-Type')).toBe('application/json')
       expect(headers.get('Cache-Control')).toBe('public, max-age=300')
     })
@@ -175,8 +194,8 @@ describe('Next.js Endpoint Handlers', () => {
       
       const response = await handler(request as any)
       
-      expect(response.init?.status).toBe(500)
-      const errorResponse = JSON.parse(response.body)
+      expect(response.status).toBe(500)
+      const errorResponse = await response.json()
       expect(errorResponse.error).toBe('Internal server error')
     })
   })
@@ -358,8 +377,8 @@ describe('Integration Tests', () => {
     
     const response = await handler(request as any)
     
-    expect(response.init?.status).toBe(200)
-    const returnedConfig = JSON.parse(response.body)
+    expect(response.status).toBe(200)
+    const returnedConfig = await response.json()
     expect(returnedConfig.applicationName).toBe('integration-test')
     expect(returnedConfig.version).toBe('2.0.0')
     expect(returnedConfig.permissions).toHaveLength(1)
@@ -384,8 +403,8 @@ describe('Integration Tests', () => {
     
     const response = await handler(request as any)
     
-    expect(response.init?.status).toBe(200)
-    const returnedConfig = JSON.parse(response.body)
+    expect(response.status).toBe(200)
+    const returnedConfig = await response.json()
     expect(returnedConfig.applicationName).toBe('pattern-test')
     expect(returnedConfig.permissions[0].id).toBe('fleet:read')
   })
