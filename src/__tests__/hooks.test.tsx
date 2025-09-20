@@ -2,9 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
-import { useVulturPermissions, usePermissionCheck, useVulturAuth } from '../hooks'
+import { useVulturPermissions, usePermissionCheck, useVulturAuth, PermissionResolver, NoOpPermissionResolver } from '../hooks'
 import { initializeVulturSSO, resetVulturSSOConfig, VulturPermissionConfigBuilder } from '../config'
-import { mockUserInfo, mockUserRoles } from './mocks/server'
+import { mockUserInfo, mockUserRoles, mockAdminUser } from './mocks/server'
+import type { UserInfo, UserRole, Permission } from '../types'
 
 // Mock localStorage
 const mockLocalStorage = {
@@ -18,6 +19,56 @@ Object.defineProperty(window, 'localStorage', {
   value: mockLocalStorage,
   writable: true,
 })
+
+// Test permission resolver
+class TestPermissionResolver extends PermissionResolver {
+  constructor() {
+    super('test-app')
+  }
+
+  resolveUserPermissions(user: UserInfo, roles: UserRole[]): Permission[] {
+    const permissions: Permission[] = []
+    
+    // Give basic read permission to all users
+    permissions.push({
+      scope: {
+        id: 'test:read',
+        name: 'Test Read',
+        resource: 'test',
+        action: 'read',
+      },
+      effect: 'allow',
+    })
+    
+    // Give write permission to fleet members
+    if (user.roles.includes('Fleet Member')) {
+      permissions.push({
+        scope: {
+          id: 'test:write',
+          name: 'Test Write',
+          resource: 'test',
+          action: 'write',
+        },
+        effect: 'allow',
+      })
+    }
+    
+    // Give admin permission to admins
+    if (user.is_admin) {
+      permissions.push({
+        scope: {
+          id: 'test:admin',
+          name: 'Test Admin',
+          resource: 'test',
+          action: 'admin',
+        },
+        effect: 'allow',
+      })
+    }
+    
+    return permissions
+  }
+}
 
 // Test wrapper with QueryClient
 const createWrapper = () => {
@@ -88,7 +139,8 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => useVulturPermissions({ resolver }), {
         wrapper: createWrapper(),
       })
 
@@ -109,7 +161,8 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'invalid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => useVulturPermissions({ resolver }), {
         wrapper: createWrapper(),
       })
 
@@ -124,7 +177,8 @@ describe('React Hooks', () => {
     it('should handle missing token', async () => {
       mockLocalStorage.getItem.mockReturnValue(null)
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => useVulturPermissions({ resolver }), {
         wrapper: createWrapper(),
       })
 
@@ -140,8 +194,9 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
+      const resolver = new TestPermissionResolver()
       const { result } = renderHook(
-        () => useVulturPermissions({ enabled: false }),
+        () => useVulturPermissions({ enabled: false, resolver }),
         { wrapper: createWrapper() }
       )
 
@@ -155,8 +210,9 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
+      const resolver = new TestPermissionResolver()
       const { result } = renderHook(
-        () => useVulturPermissions({ apiUrl: 'https://custom-api.example.com' }),
+        () => useVulturPermissions({ apiUrl: 'https://custom-api.example.com', resolver }),
         { wrapper: createWrapper() }
       )
 
@@ -173,7 +229,8 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'invalid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => useVulturPermissions({ resolver }), {
         wrapper: createWrapper(),
       })
 
@@ -197,7 +254,8 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => usePermissionCheck(resolver), {
         wrapper: createWrapper(),
       })
 
@@ -217,7 +275,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const { result } = renderHook(() => usePermissionCheck(new TestPermissionResolver()), {
         wrapper: createWrapper(),
       })
 
@@ -237,7 +295,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const { result } = renderHook(() => usePermissionCheck(new TestPermissionResolver()), {
         wrapper: createWrapper(),
       })
 
@@ -256,7 +314,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'admin-token' : null
       )
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const { result } = renderHook(() => usePermissionCheck(new TestPermissionResolver()), {
         wrapper: createWrapper(),
       })
 
@@ -270,7 +328,7 @@ describe('React Hooks', () => {
     it('should handle no user permissions', () => {
       mockLocalStorage.getItem.mockReturnValue(null)
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const { result } = renderHook(() => usePermissionCheck(new TestPermissionResolver()), {
         wrapper: createWrapper(),
       })
 
@@ -284,7 +342,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const { result } = renderHook(() => usePermissionCheck(new TestPermissionResolver()), {
         wrapper: createWrapper(),
       })
 
@@ -302,7 +360,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => usePermissionCheck(), {
+      const { result } = renderHook(() => usePermissionCheck(new TestPermissionResolver()), {
         wrapper: createWrapper(),
       })
 
@@ -322,7 +380,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturAuth(), {
+      const { result } = renderHook(() => useVulturAuth({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -340,7 +398,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'invalid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturAuth(), {
+      const { result } = renderHook(() => useVulturAuth({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -355,7 +413,7 @@ describe('React Hooks', () => {
     it('should return false for no token', async () => {
       mockLocalStorage.getItem.mockReturnValue(null)
 
-      const { result } = renderHook(() => useVulturAuth(), {
+      const { result } = renderHook(() => useVulturAuth({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -371,7 +429,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturAuth(), {
+      const { result } = renderHook(() => useVulturAuth({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -385,7 +443,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturAuth(), {
+      const { result } = renderHook(() => useVulturAuth({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -404,7 +462,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'expired-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -420,7 +478,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'invalid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -436,7 +494,7 @@ describe('React Hooks', () => {
       // Test that hook works even when localStorage returns consistently null
       mockLocalStorage.getItem.mockReturnValue(null)
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -454,7 +512,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -471,7 +529,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'admin-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -489,7 +547,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -511,7 +569,7 @@ describe('React Hooks', () => {
       // Use the same wrapper for both renders to share QueryClient
       const wrapper = createWrapper()
 
-      const { result: result1 } = renderHook(() => useVulturPermissions(), {
+      const { result: result1 } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper,
       })
 
@@ -520,7 +578,7 @@ describe('React Hooks', () => {
       })
 
       // Second render should use cached data
-      const { result: result2 } = renderHook(() => useVulturPermissions(), {
+      const { result: result2 } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper,
       })
 
@@ -532,7 +590,7 @@ describe('React Hooks', () => {
         key === 'vultur_sso_token' ? 'valid-token' : null
       )
 
-      const { result } = renderHook(() => useVulturPermissions(), {
+      const { result } = renderHook(() => useVulturPermissions({ resolver: new TestPermissionResolver() }), {
         wrapper: createWrapper(),
       })
 
@@ -543,6 +601,161 @@ describe('React Hooks', () => {
       // Data should be fresh initially
       expect(result.current.data).toBeDefined()
       expect(result.current.isStale).toBe(false)
+    })
+  })
+
+  describe('PermissionResolver Classes', () => {
+    describe('NoOpPermissionResolver', () => {
+      it('should return empty permissions array', () => {
+        const resolver = new NoOpPermissionResolver()
+        const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        
+        expect(permissions).toEqual([])
+      })
+
+      it('should log warning when used', () => {
+        const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+        
+        const resolver = new NoOpPermissionResolver()
+        resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        
+        expect(consoleSpy).toHaveBeenCalledWith(
+          'NoOpPermissionResolver is being used, configure with a custom resolver for this application'
+        )
+        
+        consoleSpy.mockRestore()
+      })
+
+      it('should be instance of PermissionResolver', () => {
+        const resolver = new NoOpPermissionResolver()
+        expect(resolver).toBeInstanceOf(PermissionResolver)
+      })
+    })
+
+    describe('TestPermissionResolver', () => {
+      it('should resolve basic read permission for all users', () => {
+        const resolver = new TestPermissionResolver()
+        const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        
+        const readPermission = permissions.find(p => p.scope.id === 'test:read')
+        expect(readPermission).toBeDefined()
+        expect(readPermission?.effect).toBe('allow')
+      })
+
+      it('should resolve write permission for fleet members', () => {
+        const resolver = new TestPermissionResolver()
+        const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        
+        const writePermission = permissions.find(p => p.scope.id === 'test:write')
+        expect(writePermission).toBeDefined()
+        expect(writePermission?.effect).toBe('allow')
+      })
+
+      it('should not give write permission to non-fleet members', () => {
+        const nonFleetUser = {
+          ...mockUserInfo,
+          roles: ['Other Role'],
+        }
+        
+        const resolver = new TestPermissionResolver()
+        const permissions = resolver.resolveUserPermissions(nonFleetUser, mockUserRoles)
+        
+        const writePermission = permissions.find(p => p.scope.id === 'test:write')
+        expect(writePermission).toBeUndefined()
+      })
+
+      it('should resolve admin permission for admin users', () => {
+        const resolver = new TestPermissionResolver()
+        const permissions = resolver.resolveUserPermissions(mockAdminUser, mockUserRoles)
+        
+        const adminPermission = permissions.find(p => p.scope.id === 'test:admin')
+        expect(adminPermission).toBeDefined()
+        expect(adminPermission?.effect).toBe('allow')
+      })
+
+      it('should not give admin permission to non-admin users', () => {
+        const resolver = new TestPermissionResolver()
+        const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        
+        const adminPermission = permissions.find(p => p.scope.id === 'test:admin')
+        expect(adminPermission).toBeUndefined()
+      })
+    })
+
+    describe('Custom Permission Resolver', () => {
+      it('should allow extending PermissionResolver', () => {
+        class CustomResolver extends PermissionResolver {
+          constructor() {
+            super('custom-app')
+          }
+
+          resolveUserPermissions(): Permission[] {
+            return [{
+              scope: {
+                id: 'custom:permission',
+                name: 'Custom Permission',
+                resource: 'custom',
+                action: 'custom',
+              },
+              effect: 'allow',
+            }]
+          }
+        }
+
+        const resolver = new CustomResolver()
+        const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        
+        expect(permissions).toHaveLength(1)
+        expect(permissions[0].scope.id).toBe('custom:permission')
+      })
+    })
+  })
+
+  describe('VulturIdentApiClient Integration', () => {
+    it('should throw error when no resolver provided', () => {
+      expect(() => {
+        // @ts-expect-error - testing error case
+        renderHook(() => useVulturPermissions({}), {
+          wrapper: createWrapper(),
+        })
+      }).toThrow('No permission resolver provided')
+    })
+
+    it('should handle API client errors properly', async () => {
+      // Use an invalid token that triggers auth error (which we know works)
+      mockLocalStorage.getItem.mockImplementation((key) => 
+        key === 'vultur_sso_token' ? 'invalid-token' : null
+      )
+
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => useVulturPermissions({ resolver }), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true)
+      })
+
+      expect(result.current.error).toBeDefined()
+    })
+
+    it('should use correct API endpoints', async () => {
+      mockLocalStorage.getItem.mockImplementation((key) => 
+        key === 'vultur_sso_token' ? 'valid-token' : null
+      )
+
+      const resolver = new TestPermissionResolver()
+      const { result } = renderHook(() => useVulturPermissions({ resolver }), {
+        wrapper: createWrapper(),
+      })
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true)
+      })
+
+      // Verify that the client made the correct API calls
+      expect(result.current.data?.user).toEqual(mockUserInfo)
+      expect(result.current.data?.roles).toEqual(mockUserRoles)
     })
   })
 })

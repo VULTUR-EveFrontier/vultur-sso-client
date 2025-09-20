@@ -1,3 +1,5 @@
+import { PermissionResolver } from "./hooks";
+
 /**
  * Permission scope definition
  */
@@ -104,7 +106,7 @@ export type VulturSSOClientConfig = {
 /**
  * Hook options for useVulturPermissions
  */
-export type UseVulturPermissionsOptions = {
+export type UseVulturPermissionsOptions<T extends PermissionResolver = PermissionResolver> = {
   /** Whether to enable the hook */
   enabled?: boolean;
   /** Custom API URL override */
@@ -113,4 +115,6 @@ export type UseVulturPermissionsOptions = {
   refetchOnWindowFocus?: boolean;
   /** Refetch interval in milliseconds */
   refetchInterval?: number;
+
+  resolver?: T;
 };

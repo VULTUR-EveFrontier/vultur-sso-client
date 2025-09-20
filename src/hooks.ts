@@ -68,65 +68,48 @@ class VulturIdentApiClient {
 /**
  * Permission resolver that combines user roles with application permissions
  */
-class PermissionResolver {
-  static resolveUserPermissions(
+export abstract class PermissionResolver {
+
+  constructor(private applicationName: string) {
+  }
+
+  abstract resolveUserPermissions(
     user: UserInfo,
     roles: UserRole[],
-    applicationName: string
-  ): Permission[] {
-    // This is a simplified implementation
-    // In a real implementation, you would:
-    // 1. Fetch the application's permission mapping from vultur-ident-api
-    // 2. Map user roles to application-specific permissions
-    // 3. Apply policy rules and inheritance
-    
-    const permissions: Permission[] = [];
-    const config = getVulturSSOConfig();
-    
-    // For now, we'll create basic permissions based on roles
-    // This should be replaced with actual permission resolution logic
-    for (const roleName of user.roles) {
-      const role = roles.find(r => r.name === roleName);
-      if (role && role.is_active) {
-        // Map role to application permissions
-        // This is where you'd implement your role -> permission mapping logic
-        for (const permissionScope of config.permissionConfig.permissions) {
-          // Simple mapping example - you'll want to make this more sophisticated
-          if (user.is_admin) {
-            permissions.push({
-              scope: permissionScope,
-              effect: 'allow'
-            });
-          } else if (roleName.toLowerCase().includes('member')) {
-            if (permissionScope.action === 'read') {
-              permissions.push({
-                scope: permissionScope,
-                effect: 'allow'
-              });
-            }
-          }
-        }
-      }
-    }
-
-    return permissions;
-  }
+  ): Permission[];
 }
 
+/**
+ * Permission resolver that does nothing
+ */
+export class NoOpPermissionResolver extends PermissionResolver {
+  resolveUserPermissions(
+    user: UserInfo,
+    roles: UserRole[],
+  ): Permission[] {
+    console.warn('NoOpPermissionResolver is being used, configure with a custom resolver for this application');
+    return [];
+  }
+}
 
 
 /**
  * React hook for fetching user permissions for the current application
  */
 export function useVulturPermissions(
-  options: UseVulturPermissionsOptions = {}
+  options: UseVulturPermissionsOptions 
 ): UseQueryResult<UserPermissions, VulturSSOError> {
   const {
     enabled = true,
     apiUrl,
     refetchOnWindowFocus = false,
     refetchInterval,
+    resolver,
   } = options;
+
+  if (!resolver) {
+    throw new Error('No permission resolver provided');
+  }
 
   return useQuery({
     queryKey: ['vultur-permissions'],
@@ -141,10 +124,9 @@ export function useVulturPermissions(
         const roles = await client.getUserRoles(user.eth_address);
 
         // Resolve permissions for this application
-        const permissions = PermissionResolver.resolveUserPermissions(
+        const permissions = resolver.resolveUserPermissions(
           user,
-          roles,
-          config.applicationName
+          roles
         );
 
         return {
@@ -182,8 +164,10 @@ export function useVulturPermissions(
 /**
  * Hook that returns permission checking functions
  */
-export function usePermissionCheck() {
-  const { data: userPermissions } = useVulturPermissions();
+export function usePermissionCheck(
+  resolver: PermissionResolver
+) {
+  const { data: userPermissions } = useVulturPermissions({ resolver });
 
   const hasPermission = (scopeId: string, requiredEffect: 'allow' | 'deny' = 'allow'): boolean => {
     if (!userPermissions) return false;
@@ -222,10 +206,8 @@ export function usePermissionCheck() {
 /**
  * Hook for checking if the current user is authenticated
  */
-export function useVulturAuth() {
-  const { data: userPermissions, isLoading, error } = useVulturPermissions({
-    refetchOnWindowFocus: true,
-  });
+export function useVulturAuth(options: UseVulturPermissionsOptions) {
+  const { data: userPermissions, isLoading, error } = useVulturPermissions(options);
 
   return {
     isAuthenticated: !!userPermissions,
