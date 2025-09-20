@@ -34,3 +34,9 @@ vitest.config.*
 # Temp files
 tmp/
 temp/
+
+_tests_/
+.cursor/
+.vscode/
+.vscode-test/
+.vscode-test/
