@@ -79,3 +79,5 @@ temp/
 
 # Vitest
 coverage/
+
+tsconfig.tsbuildinfo

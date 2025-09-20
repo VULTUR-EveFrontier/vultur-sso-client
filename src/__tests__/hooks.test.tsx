@@ -607,7 +607,7 @@ describe('React Hooks', () => {
   describe('PermissionResolver Classes', () => {
     describe('NoOpPermissionResolver', () => {
       it('should return empty permissions array', () => {
-        const resolver = new NoOpPermissionResolver()
+        const resolver = new NoOpPermissionResolver('test-app')
         const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
         
         expect(permissions).toEqual([])
@@ -616,7 +616,7 @@ describe('React Hooks', () => {
       it('should log warning when used', () => {
         const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
         
-        const resolver = new NoOpPermissionResolver()
+        const resolver = new NoOpPermissionResolver('test-app')
         resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
         
         expect(consoleSpy).toHaveBeenCalledWith(
@@ -627,7 +627,7 @@ describe('React Hooks', () => {
       })
 
       it('should be instance of PermissionResolver', () => {
-        const resolver = new NoOpPermissionResolver()
+        const resolver = new NoOpPermissionResolver('test-app')
         expect(resolver).toBeInstanceOf(PermissionResolver)
       })
     })
@@ -703,7 +703,7 @@ describe('React Hooks', () => {
         }
 
         const resolver = new CustomResolver()
-        const permissions = resolver.resolveUserPermissions(mockUserInfo, mockUserRoles)
+        const permissions = resolver.resolveUserPermissions()
         
         expect(permissions).toHaveLength(1)
         expect(permissions[0].scope.id).toBe('custom:permission')
@@ -714,7 +714,6 @@ describe('React Hooks', () => {
   describe('VulturIdentApiClient Integration', () => {
     it('should throw error when no resolver provided', () => {
       expect(() => {
-        // @ts-expect-error - testing error case
         renderHook(() => useVulturPermissions({}), {
           wrapper: createWrapper(),
         })

@@ -43,6 +43,8 @@ export {
   useVulturPermissions,
   usePermissionCheck,
   useVulturAuth,
+  PermissionResolver,
+  NoOpPermissionResolver,
 } from './hooks';
 
 // Server-side utilities
